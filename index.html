@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC News Coverage Analysis - Interactive Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 100%);
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            color: #aaa;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            padding: 40px 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            min-width: 200px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 40px rgba(0,212,255,0.3);
+        }
+
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d4ff, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: #ccc;
+            margin-top: 10px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            margin: 50px 0 30px;
+            color: #00d4ff;
+        }
+
+        /* Charts Section */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            padding: 20px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .chart-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .chart-card h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Word Cloud */
+        .word-cloud-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .word-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            min-height: 200px;
+        }
+
+        .word-tag {
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .word-tag:nth-child(odd) { animation-delay: 0.5s; }
+        .word-tag:nth-child(even) { animation-delay: 1s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .word-tag:hover {
+            transform: scale(1.2) !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        /* Slider Controls */
+        .controls-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px 40px;
+            margin: 30px 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group label {
+            display: block;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .slider-value {
+            background: rgba(0,212,255,0.2);
+            padding: 8px 16px;
+            border-radius: 10px;
+            min-width: 60px;
+            text-align: center;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        /* Sentiment Gauge */
+        .sentiment-container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .gauge {
+            width: 200px;
+            height: 100px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .gauge-bg {
+            width: 200px;
+            height: 100px;
+            border-radius: 100px 100px 0 0;
+            background: linear-gradient(90deg, #ff6b6b 0%, #ffd93d 50%, #6bcb77 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gauge-cover {
+            width: 150px;
+            height: 75px;
+            background: #16213e;
+            border-radius: 75px 75px 0 0;
+            position: absolute;
+            bottom: 0;
+            left: 25px;
+        }
+
+        .gauge-needle {
+            width: 4px;
+            height: 80px;
+            background: #fff;
+            position: absolute;
+            bottom: 0;
+            left: 98px;
+            transform-origin: bottom center;
+            transition: transform 0.5s ease;
+            border-radius: 2px;
+        }
+
+        .sentiment-label {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #ffd93d;
+        }
+
+        /* Timeline */
+        .timeline-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px 40px;
+            margin: 30px 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            padding: 40px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            transform: translateY(-50%);
+        }
+
+        .timeline-item {
+            position: relative;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .timeline-item:hover {
+            transform: scale(1.1);
+        }
+
+        .timeline-dot {
+            width: 30px;
+            height: 30px;
+            background: #00d4ff;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            border: 4px solid #16213e;
+            position: relative;
+            z-index: 2;
+        }
+
+        .timeline-dot.active {
+            background: #ff6b6b;
+            box-shadow: 0 0 20px rgba(255,107,107,0.5);
+        }
+
+        .timeline-label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .timeline-value {
+            font-size: 1.2rem;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        /* Clips Grid */
+        .clips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            padding: 20px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .clip-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .clip-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0,212,255,0.2);
+        }
+
+        .clip-card video {
+            width: 100%;
+            display: block;
+        }
+
+        .clip-info {
+            padding: 20px;
+        }
+
+        .clip-info h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .clip-info p {
+            color: #aaa;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .clip-time {
+            display: inline-block;
+            background: rgba(0,212,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .keyword-highlight {
+            background: rgba(255,107,107,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #ff6b6b;
+        }
+
+        .source-badge {
+            display: inline-block;
+            background: rgba(123,44,191,0.3);
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            color: #c084fc;
+            margin-left: 10px;
+        }
+
+        .play-all-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            margin: 30px auto;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .play-all-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,212,255,0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        /* Filter Buttons */
+        .filter-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .filter-btn {
+            padding: 12px 24px;
+            border: 2px solid #00d4ff;
+            background: transparent;
+            color: #00d4ff;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: #00d4ff;
+            color: #16213e;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation span {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(0,212,255,0.1);
+            border-radius: 50%;
+            animation: rise 15s infinite;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <span style="left:10%; animation-delay:0s;"></span>
+        <span style="left:20%; animation-delay:2s;"></span>
+        <span style="left:30%; animation-delay:4s;"></span>
+        <span style="left:40%; animation-delay:6s;"></span>
+        <span style="left:50%; animation-delay:8s;"></span>
+        <span style="left:60%; animation-delay:10s;"></span>
+        <span style="left:70%; animation-delay:12s;"></span>
+        <span style="left:80%; animation-delay:14s;"></span>
+        <span style="left:90%; animation-delay:1s;"></span>
+    </div>
+
+    <div class="hero">
+        <h1>ABC News Coverage Analysis</h1>
+        <p>Interactive dashboard analyzing ABC News Australia's coverage of hate speech legislation and extremism. Explore the data with interactive charts and visualizations.</p>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card" onclick="scrollToClips()">
+            <div class="stat-number" id="clipCount">0</div>
+            <div class="stat-label">Video Clips Extracted</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="videoCount">0</div>
+            <div class="stat-label">Videos Analyzed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="keywordCount">0</div>
+            <div class="stat-label">Keyword Mentions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">2:04</div>
+            <div class="stat-label">Total Duration</div>
+        </div>
+    </div>
+
+    <!-- Interactive Controls -->
+    <div class="controls-panel">
+        <h3 style="color: #00d4ff; margin-bottom: 20px; text-align: center;">Interactive Controls</h3>
+
+        <div class="control-group">
+            <label>Minimum Word Frequency to Display</label>
+            <div class="slider-container">
+                <input type="range" id="freqSlider" min="1" max="10" value="1" oninput="updateWordCloud()">
+                <span class="slider-value" id="freqValue">1</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Word Cloud Animation Speed</label>
+            <div class="slider-container">
+                <input type="range" id="speedSlider" min="1" max="5" value="3" oninput="updateAnimationSpeed()">
+                <span class="slider-value" id="speedValue">3s</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Chart Type</label>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="switchChart('bar')">Bar Chart</button>
+                <button class="filter-btn" onclick="switchChart('pie')">Pie Chart</button>
+                <button class="filter-btn" onclick="switchChart('doughnut')">Doughnut</button>
+                <button class="filter-btn" onclick="switchChart('polar')">Polar Area</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <h2 class="section-title">Data Visualizations</h2>
+    <div class="charts-container">
+        <div class="chart-card">
+            <h3>Keyword Frequency Distribution</h3>
+            <canvas id="keywordChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>Mentions by Video Source</h3>
+            <canvas id="sourceChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>Content Sentiment Analysis</h3>
+            <div class="sentiment-container">
+                <div class="gauge">
+                    <div class="gauge-bg">
+                        <div class="gauge-cover"></div>
+                        <div class="gauge-needle" id="sentimentNeedle"></div>
+                    </div>
+                </div>
+                <div class="sentiment-label" id="sentimentLabel">Neutral - Informative</div>
+                <p style="color: #aaa; margin-top: 15px; font-size: 0.9rem;">
+                    Coverage tone is primarily neutral/factual, focusing on policy and legislation rather than emotional framing.
+                </p>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Word Category Breakdown</h3>
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Interactive Word Cloud -->
+    <div class="word-cloud-container">
+        <h3 style="color: #00d4ff; margin-bottom: 30px; text-align: center;">Interactive Word Cloud</h3>
+        <p style="color: #aaa; text-align: center; margin-bottom: 20px;">Click on any word to see its frequency. Hover to highlight.</p>
+        <div class="word-cloud" id="wordCloud">
+            <!-- Generated by JS -->
+        </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline-container">
+        <h3 style="color: #00d4ff; margin-bottom: 30px; text-align: center;">Keyword Timeline Across Videos</h3>
+        <div class="timeline">
+            <div class="timeline-item" onclick="highlightVideo(1)">
+                <div class="timeline-dot"></div>
+                <div class="timeline-value">0</div>
+                <div class="timeline-label">Video 1</div>
+            </div>
+            <div class="timeline-item" onclick="highlightVideo(2)">
+                <div class="timeline-dot active"></div>
+                <div class="timeline-value">3</div>
+                <div class="timeline-label">Video 2</div>
+            </div>
+            <div class="timeline-item" onclick="highlightVideo(3)">
+                <div class="timeline-dot active"></div>
+                <div class="timeline-value">27</div>
+                <div class="timeline-label">Video 3</div>
+            </div>
+            <div class="timeline-item" onclick="highlightVideo(4)">
+                <div class="timeline-dot active"></div>
+                <div class="timeline-value">12</div>
+                <div class="timeline-label">Video 4</div>
+            </div>
+            <div class="timeline-item" onclick="highlightVideo(5)">
+                <div class="timeline-dot"></div>
+                <div class="timeline-value">0</div>
+                <div class="timeline-label">Video 5</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center;">
+        <button class="play-all-btn" onclick="playAllClips()">
+            <span class="live-dot"></span> Play All Clips Sequentially
+        </button>
+    </div>
+
+    <h2 class="section-title" id="clips">Extracted Video Clips</h2>
+
+    <div class="filter-buttons">
+        <button class="filter-btn active" onclick="filterClips('all')">All Clips</button>
+        <button class="filter-btn" onclick="filterClips('v2')">Video 2</button>
+        <button class="filter-btn" onclick="filterClips('v3')">Video 3</button>
+        <button class="filter-btn" onclick="filterClips('v4')">Video 4</button>
+    </div>
+
+    <div class="clips-grid" id="clipsGrid">
+        <div class="clip-card" data-source="v2">
+            <video controls preload="metadata">
+                <source src="clip_01_v2.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">00:14 - 00:24</span>
+                <span class="source-badge">Video 2</span>
+                <h3>Anti-Semitism & Extremism Legislation</h3>
+                <p>"Split its legislation designed to combat <span class="keyword-highlight">anti-semitism and extremism</span> following the Bondi attack from one bill to two."</p>
+            </div>
+        </div>
+
+        <div class="clip-card" data-source="v3">
+            <video controls preload="metadata">
+                <source src="clip_02_v3.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">05:42 - 06:09</span>
+                <span class="source-badge">Video 3</span>
+                <h3>Combating Hate & Extremism Bill</h3>
+                <p>"The bill is a combating <span class="keyword-highlight">anti-semitism, hate and extremism</span> bill. It's a comprehensive package of reforms..."</p>
+            </div>
+        </div>
+
+        <div class="clip-card" data-source="v3">
+            <video controls preload="metadata">
+                <source src="clip_03_v3.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">15:06 - 15:15</span>
+                <span class="source-badge">Video 3</span>
+                <h3>ISIS Inspiration</h3>
+                <p>"December had both the motivation from being inspired by <span class="keyword-highlight">ISIS</span> but they had the means..."</p>
+            </div>
+        </div>
+
+        <div class="clip-card" data-source="v3">
+            <video controls preload="metadata">
+                <source src="clip_04_v3.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">16:17 - 16:36</span>
+                <span class="source-badge">Video 3</span>
+                <h3>Online Radicalization Threats</h3>
+                <p>"Repeatedly that anti-semitism and online <span class="keyword-highlight">radicalization</span> are some of the biggest threats to Australia's social cohesion..."</p>
+            </div>
+        </div>
+
+        <div class="clip-card" data-source="v3">
+            <video controls preload="metadata">
+                <source src="clip_05_v3.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">25:50 - 25:59</span>
+                <span class="source-badge">Video 3</span>
+                <h3>Foreign Radicalization Content</h3>
+                <p>"How are you going to deal with the fact that a lot of this <span class="keyword-highlight">radicalization</span>, a lot of this content is coming from outside..."</p>
+            </div>
+        </div>
+
+        <div class="clip-card" data-source="v3">
+            <video controls preload="metadata">
+                <source src="clip_06_v3.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">26:41 - 26:57</span>
+                <span class="source-badge">Video 3</span>
+                <h3>How Radicalization Occurred</h3>
+                <p>"How some of that <span class="keyword-highlight">radicalization</span> occurred. We know that a lot of..."</p>
+            </div>
+        </div>
+
+        <div class="clip-card" data-source="v4">
+            <video controls preload="metadata">
+                <source src="clip_07_v4.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">01:39 - 01:48</span>
+                <span class="source-badge">Video 4</span>
+                <h3>National Crisis Response</h3>
+                <p>"This is a moment where at times of national crisis, the country has come together."</p>
+            </div>
+        </div>
+
+        <div class="clip-card" data-source="v4">
+            <video controls preload="metadata">
+                <source src="clip_08_v4.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">03:47 - 04:05</span>
+                <span class="source-badge">Video 4</span>
+                <h3>Fighting Online Extremism</h3>
+                <p>"Andre Obah is the founder of a group that fights online <span class="keyword-highlight">extremism</span>. He was an expert witness in a federal court case..."</p>
+            </div>
+        </div>
+
+        <div class="clip-card" data-source="v4">
+            <video controls preload="metadata">
+                <source src="clip_09_v4.mp4" type="video/mp4">
+            </video>
+            <div class="clip-info">
+                <span class="clip-time">05:17 - 05:25</span>
+                <span class="source-badge">Video 4</span>
+                <h3>Neo-Nazis & Extremist Preachers</h3>
+                <p>"Australians who are being targeted by people like the neo-Nazis or <span class="keyword-highlight">extremist</span> preachers..."</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Media Analysis Dashboard | Data extracted January 2026</p>
+        <p>Source: ABC News Australia YouTube channel</p>
+    </footer>
+
+    <script>
+        // Animate counters on load
+        function animateCounter(id, target, duration = 2000) {
+            const el = document.getElementById(id);
+            const start = 0;
+            const increment = target / (duration / 16);
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    el.textContent = target;
+                    clearInterval(timer);
+                } else {
+                    el.textContent = Math.floor(current);
+                }
+            }, 16);
+        }
+
+        // Initialize counters
+        setTimeout(() => {
+            animateCounter('clipCount', 9);
+            animateCounter('videoCount', 5);
+            animateCounter('keywordCount', 42);
+        }, 500);
+
+        // Word cloud data
+        const wordData = [
+            { word: 'extremism', count: 12, color: 'linear-gradient(135deg, #ff6b6b, #ff8e53)' },
+            { word: 'radicalization', count: 10, color: 'linear-gradient(135deg, #ff6b6b, #ffd93d)' },
+            { word: 'ISIS', count: 5, color: 'linear-gradient(135deg, #00d4ff, #7b2cbf)' },
+            { word: 'Islamic', count: 3, color: 'linear-gradient(135deg, #00d4ff, #00a8cc)' },
+            { word: 'extremist', count: 6, color: 'linear-gradient(135deg, #7b2cbf, #c084fc)' },
+            { word: 'radical', count: 2, color: 'linear-gradient(135deg, #4ecdc4, #556270)' },
+            { word: 'anti-semitism', count: 4, color: 'linear-gradient(135deg, #ffd93d, #ff6b6b)' },
+            { word: 'hate', count: 3, color: 'linear-gradient(135deg, #ff8e53, #ff6b6b)' },
+            { word: 'terrorism', count: 2, color: 'linear-gradient(135deg, #c084fc, #7b2cbf)' },
+            { word: 'neo-Nazis', count: 1, color: 'linear-gradient(135deg, #556270, #4ecdc4)' }
+        ];
+
+        function generateWordCloud(minFreq = 1) {
+            const container = document.getElementById('wordCloud');
+            container.innerHTML = '';
+
+            wordData.filter(w => w.count >= minFreq).forEach(item => {
+                const size = 0.8 + (item.count / 12) * 1.5;
+                const tag = document.createElement('span');
+                tag.className = 'word-tag';
+                tag.textContent = item.word;
+                tag.style.background = item.color;
+                tag.style.fontSize = size + 'rem';
+                tag.onclick = () => alert(`"${item.word}" appears ${item.count} times in the analyzed content.`);
+                container.appendChild(tag);
+            });
+        }
+
+        function updateWordCloud() {
+            const slider = document.getElementById('freqSlider');
+            document.getElementById('freqValue').textContent = slider.value;
+            generateWordCloud(parseInt(slider.value));
+        }
+
+        function updateAnimationSpeed() {
+            const slider = document.getElementById('speedSlider');
+            const speed = 6 - slider.value;
+            document.getElementById('speedValue').textContent = speed + 's';
+            document.querySelectorAll('.word-tag').forEach(tag => {
+                tag.style.animationDuration = speed + 's';
+            });
+        }
+
+        // Initialize word cloud
+        generateWordCloud();
+
+        // Charts
+        let keywordChart, sourceChart, categoryChart;
+
+        function createCharts(type = 'bar') {
+            const ctx1 = document.getElementById('keywordChart').getContext('2d');
+            const ctx2 = document.getElementById('sourceChart').getContext('2d');
+            const ctx4 = document.getElementById('categoryChart').getContext('2d');
+
+            if (keywordChart) keywordChart.destroy();
+            if (sourceChart) sourceChart.destroy();
+            if (categoryChart) categoryChart.destroy();
+
+            const chartColors = [
+                'rgba(255, 107, 107, 0.8)',
+                'rgba(0, 212, 255, 0.8)',
+                'rgba(123, 44, 191, 0.8)',
+                'rgba(255, 217, 61, 0.8)',
+                'rgba(78, 205, 196, 0.8)',
+                'rgba(255, 142, 83, 0.8)'
+            ];
+
+            keywordChart = new Chart(ctx1, {
+                type: type,
+                data: {
+                    labels: ['Extremism', 'Radicalization', 'Extremist', 'ISIS', 'Anti-semitism', 'Islamic'],
+                    datasets: [{
+                        label: 'Mentions',
+                        data: [12, 10, 6, 5, 4, 3],
+                        backgroundColor: chartColors,
+                        borderColor: chartColors.map(c => c.replace('0.8', '1')),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#fff' } }
+                    },
+                    scales: type === 'bar' ? {
+                        y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                    } : {}
+                }
+            });
+
+            sourceChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Video 2', 'Video 3', 'Video 4', 'Video 1 & 5'],
+                    datasets: [{
+                        data: [3, 27, 12, 0],
+                        backgroundColor: ['#00d4ff', '#7b2cbf', '#ff6b6b', '#333'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#fff' } }
+                    }
+                }
+            });
+
+            categoryChart = new Chart(ctx4, {
+                type: 'radar',
+                data: {
+                    labels: ['Extremism', 'Radicalization', 'Terrorism', 'Religious', 'Political', 'Hate Speech'],
+                    datasets: [{
+                        label: 'Topic Coverage',
+                        data: [18, 10, 2, 6, 4, 7],
+                        backgroundColor: 'rgba(0, 212, 255, 0.3)',
+                        borderColor: '#00d4ff',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#00d4ff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#fff' } }
+                    },
+                    scales: {
+                        r: {
+                            ticks: { color: '#aaa', backdropColor: 'transparent' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#fff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function switchChart(type) {
+            document.querySelectorAll('.control-group .filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            createCharts(type);
+        }
+
+        createCharts('bar');
+
+        // Sentiment gauge
+        function updateSentiment() {
+            const needle = document.getElementById('sentimentNeedle');
+            // -90 = negative, 0 = neutral, 90 = positive
+            // This content is neutral-to-slightly-negative (factual reporting on extremism)
+            needle.style.transform = 'rotate(-10deg)';
+        }
+        updateSentiment();
+
+        // Filter clips
+        function filterClips(source) {
+            document.querySelectorAll('.clips-grid .filter-btn, .filter-buttons .filter-btn').forEach(btn => {
+                if (btn.textContent.toLowerCase().includes(source) || (source === 'all' && btn.textContent === 'All Clips')) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            document.querySelectorAll('.clip-card').forEach(card => {
+                if (source === 'all' || card.dataset.source === source) {
+                    card.style.display = 'block';
+                    card.style.animation = 'fadeIn 0.5s ease';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Play all clips
+        function playAllClips() {
+            const videos = document.querySelectorAll('.clip-card[style*="display: block"] video, .clip-card:not([style*="display: none"]) video');
+            let currentIndex = 0;
+
+            function playNext() {
+                if (currentIndex < videos.length) {
+                    videos[currentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => {
+                        videos[currentIndex].play();
+                        videos[currentIndex].onended = () => {
+                            currentIndex++;
+                            playNext();
+                        };
+                    }, 500);
+                }
+            }
+
+            videos.forEach(v => v.pause());
+            playNext();
+        }
+
+        function scrollToClips() {
+            document.getElementById('clips').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function highlightVideo(num) {
+            const clips = {
+                2: 'v2',
+                3: 'v3',
+                4: 'v4'
+            };
+            if (clips[num]) {
+                filterClips(clips[num]);
+                scrollToClips();
+            } else {
+                alert(`Video ${num} had no keyword matches.`);
+            }
+        }
+
+        // Intersection observer for animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.clip-card, .chart-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.5s ease';
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>
